@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\core\Akka.Remote\Akka.Remote.csproj" />
+    <ProjectReference Include="..\..\RGLocalActorRefTest\RGLocalActorRefTest.csproj" />
     <ProjectReference Include="..\ChatMessages\ChatMessages.csproj" />
   </ItemGroup>
 
