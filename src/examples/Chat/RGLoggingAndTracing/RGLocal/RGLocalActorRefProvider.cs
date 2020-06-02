@@ -19,9 +19,10 @@ using Akka.Routing;
 using Akka.Serialization;
 using Akka.Util;
 using Akka.Util.Internal;
-using RGLoggingAndTracing.Actor;
+using RGLoggingAndTracing.RGActor;
+using RGLoggingAndTracing.RGLocal;
 
-namespace ChatClient.RGLoggingAndTracing
+namespace RGLoggingAndTracing.RGlocal
 {
     //Cannot directly inherit from the sealed class LocalActoRefProvider.
     //Therefore need to make a copy

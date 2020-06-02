@@ -12,7 +12,7 @@ using System.Collections.Generic;
 using Akka.Actor;
 using Akka.Event;
 
-namespace ChatClient.RGLoggingAndTracing
+namespace RGLoggingAndTracing.RGActor
 {
     public class RGVirtualPathContainer : MinimalActorRef
     {

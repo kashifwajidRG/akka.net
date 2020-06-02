@@ -6,11 +6,13 @@
 // //-----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using Akka.Actor;
 using Akka.Actor.Internal;
 using Akka.Dispatch;
+//using Amazon.XRay.Recorder.Core;
 
-namespace ChatClient.RGLoggingAndTracing
+namespace RGLoggingAndTracing.RGActor
 {
     public class RGActorCell : ActorCell
     {
@@ -23,8 +25,7 @@ namespace ChatClient.RGLoggingAndTracing
 
         public override void SendMessage(Envelope message)
         {
-            
-            Console.WriteLine("RGActorCell : SendMessage : Message is: ", message.ToString());
+            Console.WriteLine("RGActorCell : SendMessage : Message is: {0}", message.ToString());
             base.SendMessage(message);
         }
 
@@ -36,8 +37,10 @@ namespace ChatClient.RGLoggingAndTracing
         protected override void ReceiveMessage(object message)
         {
             //Start segment
+            //AWSXRayRecorder.Instance.BeginSegment(message.GetType().ToString());
             Console.WriteLine("RGActorCell : RecieveMessage : Message is: ", message.ToString());
             base.ReceiveMessage(message);
+            //AWSXRayRecorder.Instance.EndSegment();
             //End segment
         }
     }

@@ -9,8 +9,9 @@ using System;
 using Akka.Actor;
 using Akka.Actor.Internal;
 using Akka.Dispatch;
+using RGLoggingAndTracing.RGActor;
 
-namespace ChatClient.RGLoggingAndTracing
+namespace RGLoggingAndTracing.RGLocal
 {
     public class RGLocalActorRef : LocalActorRef
     {
@@ -24,8 +25,8 @@ namespace ChatClient.RGLoggingAndTracing
         protected override ActorCell NewActorCell(ActorSystemImpl systemImpl, IInternalActorRef self, Props props,
             MessageDispatcher dispatcher, IInternalActorRef supervisor)
         {
-            Console.WriteLine("RGLocalActorRef : NewActorCell");
-            return new RGActorCell(systemImpl, self, props, dispatcher, Parent);
+            Console.WriteLine("RGLocalActorRef : NewActorCell" + self.Path);
+            return new RGActorCell(systemImpl, self, props, dispatcher, supervisor);
         }
     }
 }

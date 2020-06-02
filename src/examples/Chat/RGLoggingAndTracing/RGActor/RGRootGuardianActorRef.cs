@@ -10,7 +10,7 @@ using Akka.Actor;
 using Akka.Actor.Internal;
 using Akka.Dispatch;
 
-namespace ChatClient.RGLoggingAndTracing
+namespace RGLoggingAndTracing.RGActor
 {
     public class RGRootGuardianActorRef : RootGuardianActorRef
     {
