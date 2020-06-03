@@ -18,7 +18,7 @@ namespace RGLoggingAndTracing.RGRemote
     public class RGRemoteActorRef : RemoteActorRef
     {
 
-        public RGRemoteActorRef(RGRemoteTransport remote, Address localAddressToUse, ActorPath path, IInternalActorRef parent,
+        public RGRemoteActorRef(RemoteTransport remote, Address localAddressToUse, ActorPath path, IInternalActorRef parent,
             Props props, Deploy deploy)
         : base(remote, localAddressToUse, path, parent, props, deploy)
         {

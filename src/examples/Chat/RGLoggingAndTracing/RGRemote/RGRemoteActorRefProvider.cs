@@ -70,7 +70,7 @@ namespace RGLoggingAndTracing.RGRemote
         /// <summary>
         /// The remote transport. Wraps all of the underlying physical network transports.
         /// </summary>
-        public RGRemoteTransport Transport { get { return RemoteInternals.Transport; } }
+        public RemoteTransport Transport { get { return RemoteInternals.Transport; } }
 
         /// <summary>
         /// The remoting settings
@@ -209,8 +209,8 @@ namespace RGLoggingAndTracing.RGRemote
         /// <returns>TBD</returns>
         protected virtual IActorRef CreateRemoteDeploymentWatcher(ActorSystemImpl system)
         {
-            return system.SystemActorOf(RemoteSettings.ConfigureDispatcher(Props.Create<RemoteDeploymentWatcher>()),
-                "remote-deployment-watcher");
+            return system.SystemActorOf(RemoteSettings.ConfigureDispatcher(Props.Create<RGRemoteDeploymentWatcher>()),
+                "rg-remote-deployment-watcher");
         }
 
         /// <summary>
@@ -407,13 +407,33 @@ namespace RGLoggingAndTracing.RGRemote
                     // HACK: needed to make ActorSelections work
                     if (actorPath.ToStringWithoutAddress().Equals("/"))
                         return RootGuardian;
-                    return _local.ResolveActorRef(RootGuardian, actorPath.ElementsWithUid);
+                    return _local.ResolveActorRef(RootGuardian, ElementsWithUid(actorPath));
                 }
 
-                return CreateRemoteRef(new RootActorPath(actorPath.Address) / actorPath.ElementsWithUid, localAddress);
+                return CreateRemoteRef(new RootActorPath(actorPath.Address) / ElementsWithUid(actorPath), localAddress);
             }
             _log.Debug("resolve of unknown path [{0}] failed", path);
             return InternalDeadLetters;
+        }
+        
+        IReadOnlyList<string> ElementsWithUid(ActorPath actorPath)
+        {
+            if (this is RootActorPath)
+            {
+                string[] EmptyElements = { };
+                return EmptyElements;
+            }
+            var elements = (List<string>)actorPath.Elements;
+            elements[elements.Count - 1] = AppendUidFragment(actorPath);
+            return elements;
+        }
+        
+        string AppendUidFragment(ActorPath actorPath)
+        {
+            if (actorPath.Uid == ActorCell.UndefinedUid)
+                return actorPath.Name;
+
+            return String.Concat(actorPath.Name, "#", actorPath.Uid.ToString());
         }
 
         
@@ -425,7 +445,7 @@ namespace RGLoggingAndTracing.RGRemote
         /// <returns>An <see cref="IInternalActorRef"/> instance.</returns>
         protected virtual IInternalActorRef CreateRemoteRef(ActorPath actorPath, Address localAddress)
         {
-            return new RemoteActorRef(Transport, localAddress, actorPath, ActorRefs.Nobody, Props.None, Deploy.None);
+            return new RGRemoteActorRef(Transport, localAddress, actorPath, ActorRefs.Nobody, Props.None, Deploy.None);
         }
 
         /// <summary>
@@ -472,7 +492,7 @@ namespace RGLoggingAndTracing.RGRemote
         {
             if (HasAddress(actorPath.Address))
             {
-                return _local.ResolveActorRef(RootGuardian, actorPath.ElementsWithUid);
+                return _local.ResolveActorRef(RootGuardian, ElementsWithUid(actorPath));
             }
             try
             {
@@ -518,8 +538,8 @@ namespace RGLoggingAndTracing.RGRemote
         {
             _log.Debug("[{0}] Instantiating Remote Actor [{1}]", RootPath, actor.Path);
             IActorRef remoteNode = ResolveActorRef(new RootActorPath(actor.Path.Address) / "remote");
-            remoteNode.Tell(new DaemonMsgCreate(props, deploy, actor.Path.ToSerializationFormat(), supervisor));
-            _remoteDeploymentWatcher.Tell(new RemoteDeploymentWatcher.WatchRemote(actor, supervisor));
+            remoteNode.Tell(new RGDaemonMsgCreate(props, deploy, actor.Path.ToSerializationFormat(), supervisor));
+            _remoteDeploymentWatcher.Tell(new RGRemoteDeploymentWatcher.WatchRemote(actor, supervisor));
         }
 
         /// <summary>
@@ -549,7 +569,7 @@ namespace RGLoggingAndTracing.RGRemote
             /// <param name="transport">TBD</param>
             /// <param name="serialization">TBD</param>
             /// <param name="remoteDaemon">TBD</param>
-            public RGInternals(RGRemoteTransport transport, Akka.Serialization.Serialization serialization, IInternalActorRef remoteDaemon)
+            public RGInternals(RemoteTransport transport, Akka.Serialization.Serialization serialization, IInternalActorRef remoteDaemon)
             {
                 Transport = transport;
                 Serialization = serialization;
@@ -559,7 +579,7 @@ namespace RGLoggingAndTracing.RGRemote
             /// <summary>
             /// TBD
             /// </summary>
-            public RGRemoteTransport Transport { get; private set; }
+            public RemoteTransport Transport { get; private set; }
 
             /// <summary>
             /// TBD
