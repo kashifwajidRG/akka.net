@@ -16,4 +16,8 @@
       <ProjectReference Include="..\..\..\core\Akka.Remote\Akka.Remote.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="AWSXRayRecorder" Version="2.8.0" />
+    </ItemGroup>
+
 </Project>
