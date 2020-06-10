@@ -17,6 +17,40 @@ using Akka.Remote;
 
 namespace RGLoggingAndTracing.RGRemote
 {
+    
+    internal sealed class RGRARP : ExtensionIdProvider<RGRARP>,  IExtension
+    {
+        //this is why this extension is called "RGRARP"
+        private readonly IRemoteActorRefProvider _provider;
+
+        public RGRARP() { }
+
+        private RGRARP(IRemoteActorRefProvider provider)
+        {
+            _provider = provider;
+        }
+
+        public Props ConfigureDispatcher(Props props)
+        {
+            return _provider.RemoteSettings.ConfigureDispatcher(props);
+        }
+        public override RGRARP CreateExtension(ExtendedActorSystem system)
+        {
+            return new RGRARP((IRemoteActorRefProvider)system.Provider);
+        }
+
+        public IRemoteActorRefProvider Provider
+        {
+            get { return _provider; }
+        }
+
+        
+        public static RGRARP For(ActorSystem system)
+        {
+            return system.WithExtension<RGRARP, RGRARP>();
+        }
+
+    }
 
     public abstract class RGRemoteTransport
     {
@@ -172,8 +206,8 @@ namespace RGLoggingAndTracing.RGRemote
             {
                 _log.Info("Starting remoting");
                 _endpointManager =
-                System.SystemActorOf(RARP.For(System).ConfigureDispatcher(
-                    Props.Create(() => new EndpointManager(System.Settings.Config, _log)).WithDeploy(Deploy.Local)),
+                System.SystemActorOf(RGRARP.For(System).ConfigureDispatcher(
+                    Props.Create(() => new RGEndpointManager(System.Settings.Config, _log)).WithDeploy(Deploy.Local)),
                     EndpointManagerName);
 
                 try
@@ -204,7 +238,7 @@ namespace RGLoggingAndTracing.RGRemote
 
                     _log.Info("Remoting started; listening on addresses : [{0}]", string.Join(",", _addresses.Select(x => x.ToString())));
 
-                    _endpointManager.Tell(new EndpointManager.StartupFinished());
+                    _endpointManager.Tell(new RGEndpointManager.StartupFinished());
                     _eventPublisher.NotifyListeners(new RemotingListenEvent(_addresses.ToList()));
 
                 }

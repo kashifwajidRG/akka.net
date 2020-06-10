@@ -18,6 +18,7 @@ using Akka.Event;
 using Akka.IO;
 using Akka.Remote;
 using Akka.Remote.Transport;
+using Akka.Routing;
 using Akka.Util.Internal;
 
 namespace RGLoggingAndTracing.RGRemote
@@ -446,12 +447,12 @@ namespace RGLoggingAndTracing.RGRemote
         /// </summary>
         /// <param name="config">The HOCON configuration for the current <see cref="ActorSystem"/>.</param>
         /// <param name="log">The "remoting" logging source.</param>
-        public EndpointManager(Config config, ILoggingAdapter log)
+        public RGEndpointManager(Config config, ILoggingAdapter log)
         {
             _conf = config;
             _settings = new RemoteSettings(_conf);
             _log = log;
-            _eventPublisher = new EventPublisher(Context.System, log, Logging.LogLevelFor(_settings.RemoteLifecycleEventsLogLevel));
+            _eventPublisher = new RGEventPublisher(Context.System, log, Logging.LogLevelFor(_settings.RemoteLifecycleEventsLogLevel));
 
             Receiving();
         }
@@ -460,12 +461,12 @@ namespace RGLoggingAndTracing.RGRemote
         /// Mapping between addresses and endpoint actors. If passive connections are turned off, incoming connections
         /// will not be part of this map!
         /// </summary>
-        private readonly EndpointRegistry _endpoints = new EndpointRegistry();
+        private readonly RGEndpointRegistry _endpoints = new RGEndpointRegistry();
         private readonly RemoteSettings _settings;
         private readonly Config _conf;
         private readonly AtomicCounterLong _endpointId = new AtomicCounterLong(0L);
         private readonly ILoggingAdapter _log;
-        private readonly EventPublisher _eventPublisher;
+        private readonly RGEventPublisher _eventPublisher;
 
         /// <summary>
         /// Used to indicate when an abrupt shutdown occurs
@@ -719,7 +720,7 @@ namespace RGLoggingAndTracing.RGRemote
                         .PipeTo(sender);
                 });
 
-            Receive<Quarantine>(quarantine =>
+            Receive<RGQuarantine>(quarantine =>
             {
                 //Stop writers
                 var policy =
@@ -753,7 +754,7 @@ namespace RGLoggingAndTracing.RGRemote
                         //the quarantine uid has lost the race with some failure, do nothing
                     }
                 }
-                else if (policy.Item1 is Quarantined && policy.Item2 != null && policy.Item1.AsInstanceOf<Quarantined>().Uid == policy.Item2.Value)
+                else if (policy.Item1 is RGQuarantined && policy.Item2 != null && policy.Item1.AsInstanceOf<RGQuarantined>().Uid == policy.Item2.Value)
                 {
                     // the UID to be quarantined already exists, do nothing
                 }
@@ -811,7 +812,7 @@ namespace RGLoggingAndTracing.RGRemote
 
             });
 
-            Receive<Send>(send =>
+            Receive<Udp.Send>(send =>
             {
                 var recipientAddress = send.Recipient.Path.Address;
                 IActorRef CreateAndRegisterWritingEndpoint() => _endpoints.RegisterWritableEndpoint(recipientAddress, 
@@ -824,11 +825,11 @@ namespace RGLoggingAndTracing.RGRemote
                     case RGPass pass:
                         pass.Endpoint.Tell(send);
                         break;
-                    case Gated gated:
+                    case RGGated gated:
                         if (gated.TimeOfRelease.IsOverdue) CreateAndRegisterWritingEndpoint().Tell(send);
                         else Context.System.DeadLetters.Tell(send);
                         break;
-                    case Quarantined quarantined:
+                    case RGQuarantined quarantined:
                         // timeOfRelease is only used for garbage collection reasons, therefore it is ignored here. We still have
                         // the Quarantined tombstone and we know what UID we don't want to accept, so use it.
                         CreateAndRegisterWritingEndpoint().Tell(send);
@@ -926,7 +927,7 @@ namespace RGLoggingAndTracing.RGRemote
         /// </summary>
         protected void Flushing()
         {
-            Receive<Send>(send => Context.System.DeadLetters.Tell(send));
+            Receive<Udp.Send>(send => Context.System.DeadLetters.Tell(send));
             Receive<InboundAssociation>(
                      ia => ia.Association.AsInstanceOf<AkkaProtocolHandle>().Disassociate(DisassociateInfo.Shutdown));
             Receive<Terminated>(terminated => { }); // why should we care now?

@@ -17,6 +17,7 @@ using Akka.Event;
 using Akka.Util;
 using RGLoggingAndTracing.RGActor;
 using Akka.Util.Internal;
+using Akka.Util.Internal.Collections;
 
 namespace RGLoggingAndTracing.RGRemote
 {
